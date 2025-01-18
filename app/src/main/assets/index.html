@@ -28,8 +28,21 @@
     <span id="file-name">未选择文件</span>
     <button id="clear-scene">清除场景</button>
     <button id="load-default">加载默认点云</button>
+    <button id="flush">刷新</button>
+    <button id="zoomUp">放大</button>
+    <button id="zoomDown">缩小</button>
+    <button id="moveUp">向上</button>
+    <button id="moveDown">向下</button>
+    <button id="moveLeft">向左</button>
+    <button id="moveRight">向右</button>
+    <button id="horizontalFlip">水平翻转</button>
+    <button id="verticalFlip">垂直翻转</button>
+    <button id="rotateX">X轴旋转</button>
+    <button id="rotateY">Y轴旋转</button>
+    <button id="rotateZ">Z轴旋转</button>
+    <button id="resetView">重置视角</button>
 </div>
-<script src="./three.min.js"></script>
+<script src="./three.js"></script>
 <script src="./PCDLoader.js"></script>
 <script src="./OrbitControls.js"></script>
 <script>
@@ -38,6 +51,27 @@
     const fileNameLabel = document.getElementById('file-name');
     const clearSceneButton = document.getElementById('clear-scene');
     const loadDefaultButton = document.getElementById('load-default');
+    const freshButton = document.getElementById('flush');
+
+    const zoomUp = document.getElementById('zoomUp');
+    const zoomDown = document.getElementById('zoomDown');
+    const moveUp = document.getElementById('moveUp');
+    const moveDown = document.getElementById('moveDown');
+    const moveLeft = document.getElementById('moveLeft');
+    const moveRight = document.getElementById('moveRight');
+    const horizontalFlip = document.getElementById('horizontalFlip');
+    const verticalFlip = document.getElementById('verticalFlip');
+    const resetView = document.getElementById('resetView'); //重置视角
+    // 获取旋转按钮元素
+    const rotateX = document.getElementById('rotateX');
+    const rotateY = document.getElementById('rotateY');
+    const rotateZ = document.getElementById('rotateZ');
+
+    let moveSpeed = 1;
+    let points;
+    let scaleSpeed = 0.2; // 增加缩放步进值使效果更明显
+    let zoomSpeed = 5; // 缩放的步进值
+
 
     // 设置场景、摄像头和渲染器
     const scene = new THREE.Scene();
@@ -51,12 +85,16 @@
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.addEventListener('change', () => renderer.render(scene, camera));
 
+    const axesHelper = new THREE.AxesHelper(100)
+    scene.add(axesHelper)
+
     // 设置光源
     const light = new THREE.AmbientLight(0xffffff);
     scene.add(light);
 
     // 设置摄像头位置
     camera.position.z = 50;
+    // camera.position.set( 0, 0, 1 );
 
     // 创建PCD加载器
     const pcdLoader = new THREE.PCDLoader();
@@ -66,18 +104,197 @@
         opacity: 0.7,
         transparent: true,
     });
+
     // 处理上传的PCD文件
     pcdUpload.addEventListener('change', (event) => {
-        const points = pcdLoader.parse(e.target.result);
-        points.material = pointCloudMaterial;
-        scene.add(points);
-        renderer.render(scene, camera);
+        loadPcdByFile(event.target.files[0])
     });
 
-    // 创建一个函数来清除场景中的点云
+    // 为加载默认点云按钮添加点击事件监听器
+    loadDefaultButton.addEventListener('click', () => {
+        fetch('./data/autoware-241230.pcd')
+            .then(response => response.arrayBuffer())
+            .then(data => {
+                loadPcdData(data)
+                fileNameLabel.textContent = 'pointCloud.pcd';
+            })
+            .catch(error => {
+                console.error('加载文件失败:', error);
+                alert('加载点云失败，请检查文件格式是否正确');
+            });
+    });
+
+    function loadPcdByFile(file){
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onload = function(e) {
+            loadPcdData(e.target.result)
+        };
+        
+    }
+
+
+    function loadPcdData(pcdData){
+        clearPointClouds()
+        try {
+            if (pcdData instanceof ArrayBuffer) {
+                points = pcdLoader.parse(pcdData);
+                points.material = pointCloudMaterial;
+                scene.add(points);
+                renderer.render(scene, camera);
+            }else{
+                console.error('pcdData is not ArrayBuffer');
+                alert('加载点云失败，请检查文件格式是否正确');
+                throw error;
+            }
+            
+        } catch (error) {
+            let msg = {"msg":'加载点云失败,'+ error}
+            console.error(msg);
+            alert(JSON.stringify(msg));
+            throw error;
+        }
+
+    }
+
+
+    function zoomControl(zoomType,zoomSpeed){
+        let maxDistance = 200;
+        let minDistance = 10;
+        if(points){
+            let distance = camera.position.length(); // 计算相机到原点的距离
+            let direction = new THREE.Vector3();
+            camera.getWorldDirection(direction); // 获取相机朝向
+
+            if(zoomType == 'zoomUp'){
+                // 限制最小距离
+                if(distance > minDistance){
+                    camera.position.addScaledVector(direction, zoomSpeed);
+                }
+            }else if(zoomType == 'zoomDown'){
+                // 限制最大距离
+                if(distance < maxDistance){
+                    camera.position.addScaledVector(direction, -zoomSpeed);
+                }
+                
+            }
+            renderer.render(scene, camera);
+        }
+    }
+
+
+    function moveControlWithSpeed(controlType,controlSpeed){
+        if(points){
+            console.log("===>",controlType)
+            if(controlType == 'moveUp'){
+                points.position.y += controlSpeed;
+            }else if(controlType == 'moveDown'){
+                points.position.y -= controlSpeed;
+            }else if(controlType == 'moveLeft'){
+                points.position.x -= controlSpeed;
+            }else if(controlType == 'moveRight'){
+                points.position.x += moveSpeed;
+            }else if(controlType == "zoomUp"){
+                zoomControl('zoomUp',controlSpeed);
+            }else if(controlType == "zoomDown"){
+                zoomControl('zoomDown',controlSpeed);
+            }
+            logCameraInfo()
+            renderer.render(scene, camera);
+        }
+    }
+    /*
+     * 移动控制
+     * 参数：
+     * controlType: 控制类型，moveUp-向上, moveDown-向下, moveLeft-向左, moveRight-向右, 
+     *              zoomUp-放大, zoomDown-缩小, reset-重置视角, 
+     *              rotateX-X轴旋转, rotateY-Y轴旋转, rotateZ-Z轴旋转, 
+     *              horizontalFlip-水平翻转, verticalFlip-垂直翻转
+     */
+    function moveControl(controlType){
+        if(points){
+            console.log("===>",controlType)
+            if(controlType == 'moveUp'){
+                points.position.y += moveSpeed;
+            }else if(controlType == 'moveDown'){
+                points.position.y -= moveSpeed;
+            }else if(controlType == 'moveLeft'){
+                points.position.x -= moveSpeed;
+            }else if(controlType == 'moveRight'){
+                points.position.x += moveSpeed;
+            }else if(controlType == "zoomUp"){
+                zoomControl('zoomUp',zoomSpeed);
+            }else if(controlType == "zoomDown"){
+                zoomControl('zoomDown',zoomSpeed);
+            }else if(controlType == "reset"){
+                resetObjectView()
+            }else if(controlType == "rotateY" || controlType == "horizontalFlip"){
+                smoothPointCloudRotate('y', Math.PI);
+            }else if(controlType == "rotateX" || controlType == "verticalFlip"){
+                smoothPointCloudRotate('x', Math.PI);
+            }else if(controlType == "rotateZ"){
+                smoothPointCloudRotate('z', Math.PI/10);
+            }
+            logCameraInfo()
+            renderer.render(scene, camera);
+        }else{
+            console.error('pcd not loaded!!');
+            alert('pcd not loaded!!');
+            throw new Error('pcd not loaded!!');
+        }
+    }
+
+    function logCameraInfo() {
+
+        console.log("相机位置:", {
+            x: camera.position.x.toFixed(2),
+            y: camera.position.y.toFixed(2),
+            z: camera.position.z.toFixed(2)
+        },"相机朝向:", {
+            x: controls.target.x.toFixed(2),
+            y: controls.target.y.toFixed(2),
+            z: controls.target.z.toFixed(2)
+        },"相机上方向:", {
+            x: camera.up.x.toFixed(2),
+            y: camera.up.y.toFixed(2),
+            z: camera.up.z.toFixed(2)
+        });
+
+    }
+
+    // 修改移动按钮的事件处理
+    moveUp.addEventListener('click', () => {
+        moveControl('moveUp');
+    });
+
+    moveDown.addEventListener('click', () => {
+        moveControl('moveDown');
+    });
+
+    moveLeft.addEventListener('click', () => {
+        moveControl('moveLeft');
+    });
+
+    moveRight.addEventListener('click', () => {
+        moveControl('moveRight');
+    });
+
+    zoomUp.addEventListener('click', () => {
+        moveControl('zoomUp');
+    });
+
+    zoomDown.addEventListener('click', () => {
+        moveControl('zoomDown');
+    });
+
+
+
+    // 修改清除点云函数
     function clearPointClouds() {
+        resetObjectView();
         for (const object of scene.children.slice()) {
             if (object instanceof THREE.Points) {
+                object.rotation.set(0, 0, 0); // 重置旋转
                 scene.remove(object);
             }
         }
@@ -85,49 +302,129 @@
 
     // 为清除场景按钮添加点击事件监听器
     clearSceneButton.addEventListener('click', () => {
-        msgArrayBuffer.postMessage("sss")
-    });
-
-
-    // 为加载默认点云按钮添加点击事件监听器
-    loadDefaultButton.addEventListener('click', () => {
         clearPointClouds();
-        fetch('./data/autoware-241230.pcd')
-            .then(response => response.arrayBuffer())
-            .then(data => {
-                const points = pcdLoader.parse(data);
-                points.material = pointCloudMaterial;
-                scene.add(points);
-                fileNameLabel.textContent = 'pointCloud.pcd';
-                renderer.render(scene, camera);
-            })
-            .catch(error => {
-                console.error('加载文件失败:', error);
-                alert('请使用本地服务器运行此页面，例如：python -m http.server 8000');
-            });
+        renderer.render(scene, camera);
     });
-    var dataStr = ''
-    function append(content) {
-        dataStr = dataStr.concat(content)
+
+        // 为清除场景按钮添加点击事件监听器
+    freshButton.addEventListener('click', () => {
+        console.log("flush~~~~")
+        msgArrayBuffer.postMessage("fress")
+    });
+
+    horizontalFlip.addEventListener('click', () => {
+        moveControl('horizontalFlip');
+    });
+
+    // 添加垂直翻转功能
+    
+    verticalFlip.addEventListener('click', () => {
+        moveControl('verticalFlip');
+    });
+
+    // 使用相机旋转
+    rotateX.addEventListener('click', () => {
+        console.log("X轴旋转180度~~~~");
+        moveControl('rotateX');
+    });
+
+    rotateY.addEventListener('click', () => {
+        console.log("Y轴旋转180度~~~~");
+        moveControl('rotateY');
+    });
+
+    rotateZ.addEventListener('click', () => {
+        console.log("Z轴旋转180度~~~~");
+        moveControl('rotateZ');
+    });
+
+    resetView.addEventListener('click', () => {
+        resetObjectView()
+    });
+
+    // 添加一些预设视角按钮
+    const viewButtons = {
+        'front': new THREE.Vector3(0, 0, 50),
+        'back': new THREE.Vector3(0, 0, -50),
+        'top': new THREE.Vector3(0, 50, 0),
+        'bottom': new THREE.Vector3(0, -50, 0),
+        'left': new THREE.Vector3(-50, 0, 0),
+        'right': new THREE.Vector3(50, 0, 0)
+    };
+
+    // 添加预设视角的HTML按钮
+    Object.keys(viewButtons).forEach(view => {
+        const button = document.createElement('button');
+        button.textContent = view + '视图';
+        button.addEventListener('click', () => {
+            camera.position.copy(viewButtons[view]);
+            camera.lookAt(scene.position);
+            renderer.render(scene, camera);
+        });
+        document.getElementById('upload-container').appendChild(button);
+    });
+
+    function resetCameraView(){
+        camera.position.set(0, 0, 50);
+        camera.lookAt(scene.position);
+        renderer.render(scene, camera);
     }
+
+    function resetObjectView(){
+        // 重置点云旋转
+        resetPointCloudRotation();
+        // 重置相机位置
+        resetCameraView();
+    }
+
+    function CameraMove(direction, distance) {
+        camera.position[direction] += distance;
+    }
+    
+
+    function loadPcd(pdcPath) {
+        msgArrayBuffer.postMessage(pdcPath)
+    }
+    
     msgArrayBuffer.onmessage = function (event) {
         if (event.data instanceof ArrayBuffer) {
-            const points = pcdLoader.parse(event.data);
-            points.material = pointCloudMaterial;
-            scene.add(points);
-            renderer.render(scene, camera);
+            loadPcdData(event.data)
+        }else{
+            console.log("====>msgArrayBuffer.onmessage:",event.data)
+            moveControl(event.data)
         }
     }
-    function show() {
-        // Base64编码的字符串
-        // 使用atob将Base64编码字符串解码为普通字符串
-        const decodedString = atob(dataStr);
-        console.log(decodedString)
+    
 
-        const points = pcdLoader.parse(decodedString);
-        points.material = pointCloudMaterial;
-        scene.add(points);
-        renderer.render(scene, camera);
+    // 相机旋转函数
+    function smoothCameraRotate(axis, angle) {
+        const steps = 30;
+        const angleStep = angle / steps;
+        let currentStep = 0;
+
+        function animate() {
+            if (currentStep < steps) {
+                let rotationAxis;
+                switch(axis) {
+                    case 'x':
+                        rotationAxis = new THREE.Vector3(1, 0, 0);
+                        break;
+                    case 'y':
+                        rotationAxis = new THREE.Vector3(0, 1, 0);
+                        break;
+                    case 'z':
+                        rotationAxis = new THREE.Vector3(0, 0, 1);
+                        break;
+                }
+
+                camera.position.applyAxisAngle(rotationAxis, angleStep);
+                camera.lookAt(scene.position);
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+                currentStep++;
+            }
+        }
+        animate();
     }
 
     // 渲染场景
@@ -136,8 +433,48 @@
         controls.update();
         renderer.render(scene, camera);
     }
-
     animate();
+
+
+    function toDegrees(angle){
+        return angle * (180 / Math.PI);
+    }
+    // 点云旋转函数
+    function smoothPointCloudRotate(axis, angle) {
+        if (!points) return;
+        console.log("====>smoothPointCloudRotate:",axis,toDegrees(angle))
+        const steps = 30;
+        const angleStep = angle / steps;
+        let currentStep = 0;
+
+        function animate() {
+            if (currentStep < steps) {
+                switch(axis) {
+                    case 'x':
+                        points.rotation.x += angleStep;
+                        break;
+                    case 'y':
+                        points.rotation.y += angleStep;
+                        break;
+                    case 'z':
+                        points.rotation.z += angleStep;
+                        break;
+                }
+                renderer.render(scene, camera);
+                currentStep++;
+                requestAnimationFrame(animate);
+            }
+        }
+        animate();
+    }
+
+    function resetPointCloudRotation() {
+        if (points) {
+            points.rotation.set(0, 0, 0);
+            renderer.render(scene, camera);
+        }
+    }
+
 </script>
 
 </body>

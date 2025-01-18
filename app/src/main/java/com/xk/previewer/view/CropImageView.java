@@ -1,7 +1,8 @@
-package com.xk.previewer;
+package com.xk.previewer.view;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -21,10 +22,14 @@ import android.graphics.drawable.shapes.OvalShape;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.widget.ImageView;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 
 
-public class CropImageView extends ImageView {
+public class CropImageView extends CustomImageView {
 
     private static final String TAG = "CropImageView";
 
@@ -73,11 +78,110 @@ public class CropImageView extends ImageView {
     int mMagnifierCrossColor = DEFAULT_MAGNIFIER_CROSS_COLOR; // 放大镜十字颜色
     int mGuideLineColor = DEFAULT_GUIDE_LINE_COLOR; // 辅助线颜色
     int mMaskAlpha = DEFAULT_MASK_ALPHA; //0 - 255, 蒙版透明度
-    boolean mShowGuideLine = true; // 是否显示辅助线
+    boolean mShowGuideLine = false; // 是否显示辅助线
     boolean mShowMagnifier = true;// 是否显示放大镜
     boolean mShowEdgeMidPoint = true;//是否显示边中点
 
     boolean mDragLimit = true;// 是否限制锚点拖动范围为凸四边形
+
+    public Bitmap rotateBitmap(Bitmap source, float angle) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+
+    public Bitmap flipBitmap(Bitmap source, boolean isLeftRight) {
+        Matrix matrix = new Matrix();
+        if (isLeftRight) {
+            matrix.preScale(-1.0f, 1.0f); // 水平翻转
+        } else {
+            matrix.preScale(1.0f, -1.0f); // 水平翻转
+        }
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+
+    public void rightRotate() {
+        Bitmap bitmap = rotateBitmap(getBitmap(), 90);
+        setImageBitmap(bitmap);
+    }
+
+    public void leftRotate() {
+        Bitmap bitmap = rotateBitmap(getBitmap(), -90);
+        setImageBitmap(bitmap);
+    }
+
+    public void topBottomFlip() {
+        Bitmap bitmap = flipBitmap(getBitmap(), false);
+        setImageBitmap(bitmap);
+    }
+
+    public void leftRightFlip() {
+        Bitmap bitmap = flipBitmap(getBitmap(), true);
+        setImageBitmap(bitmap);
+    }
+
+    public void switchCrop(boolean open) {
+        if (open) {
+            setCropPoints(null);
+            setShowGuideLine(true);
+        }else{
+            mCropPoints = null;
+            setShowGuideLine(false);
+            invalidate();
+        }
+    }
+
+    public void save() {
+        File path = new File(imgPath);
+        FileOutputStream fileOutputStream;
+        try {
+            fileOutputStream = new FileOutputStream(path);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        getBitmap().compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+        Toast.makeText(getContext(), "文件保存成功", Toast.LENGTH_SHORT).show();
+    }
+
+    public void applyCrop() {
+        if (getCropPoints() != null) {
+            Bitmap newBitmap = getCropBitmap();
+            setImageBitmap(newBitmap);
+        }
+    }
+
+    private Bitmap getCropBitmap() {
+        int width = getBitmap().getWidth();
+        int height = getBitmap().getHeight();
+        Point[] cropPoints = getCropPoints();
+        Matrix matrix = new Matrix();
+        float[] src = {
+                cropPoints[0].x, cropPoints[0].y,
+                cropPoints[1].x, cropPoints[1].y,
+                cropPoints[3].x, cropPoints[3].y,
+                cropPoints[2].x, cropPoints[2].y,
+        };
+        float[] dst = {
+                0, 0,
+                width, 0,
+                0, height,
+                width, height
+        };
+        matrix.setPolyToPoly(src, 0, dst, 0, 4);
+
+
+        // Create new bitmap for the cropped image
+        Bitmap croppedBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(croppedBitmap);
+        canvas.concat(matrix);
+        canvas.drawBitmap(getBitmap(), 0, 0, null);
+        return croppedBitmap;
+    }
+
+    public void restore() {
+        setImageBitmap(BitmapFactory.decodeFile(imgPath));
+    }
+
 
     enum DragPointType {
         LEFT_TOP,
@@ -101,11 +205,7 @@ public class CropImageView extends ImageView {
     }
 
     public CropImageView(Context context, AttributeSet attrs) {
-        this(context, attrs, 0);
-    }
-
-    public CropImageView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
+        super(context, attrs);
         ScaleType scaleType = getScaleType();
         if (scaleType == ScaleType.FIT_END || scaleType == ScaleType.FIT_START || scaleType == ScaleType.MATRIX) {
             throw new RuntimeException("Image in CropImageView must be in center");
@@ -114,6 +214,7 @@ public class CropImageView extends ImageView {
         initAttrs(context, attrs);
         initPaints();
     }
+
 
     private void initAttrs(Context context, AttributeSet attrs) {
         mMaskAlpha = Math.min(Math.max(0, DEFAULT_MASK_ALPHA), 255);
@@ -179,15 +280,6 @@ public class CropImageView extends ImageView {
         mMagnifierDrawable = null;
     }
 
-    /**
-     * 设置待裁剪图片并显示
-     *
-     * @param bmp 待裁剪图片
-     */
-    public void setImageToCrop(Bitmap bmp) {
-        setImageBitmap(bmp);
-        setCropPoints(null);
-    }
 
     /**
      * 获取选区

@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 
-public class MainActivity extends Activity {
+public class MainActivity1 extends Activity {
 
     private byte[] readFormAssets() throws IOException {
         InputStream open = getAssets().open("off.pcd");

@@ -44,7 +44,13 @@ android {
 
 dependencies {
 
-    implementation("androidx.webkit:webkit:1.9.0")
+    implementation("androidx.webkit:webkit:1.12.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.facebook.fresco:fresco:3.6.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
 
 //    implementation(libs.androidx.lifecycle.runtime.ktx)
 //    implementation(libs.androidx.activity.compose)
