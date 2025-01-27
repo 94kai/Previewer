@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Previewer"
+rootProject.name = "Preview"
 include(":app")
  

@@ -187,7 +187,6 @@
 			}
 
 			const textData = THREE.LoaderUtils.decodeText(new Uint8Array(data));
-			// const textData = data
 
 			// parse header (always ascii format)
 

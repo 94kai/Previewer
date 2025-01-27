@@ -13,5 +13,7 @@ public class Application extends android.app.Application {
         super.onCreate();
         SpUtils.init(this);
         Fresco.initialize(this);
+        app = this;
     }
+    public static Application app;
 }

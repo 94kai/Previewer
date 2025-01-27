@@ -50,6 +50,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
     implementation("com.facebook.fresco:fresco:3.6.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.github.gmazzo.okhttp.mock:mock-client:2.0.0")
 
 
 //    implementation(libs.androidx.lifecycle.runtime.ktx)

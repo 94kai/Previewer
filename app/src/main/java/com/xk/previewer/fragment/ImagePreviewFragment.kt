@@ -53,8 +53,14 @@ class ImagePreviewFragment : Fragment(R.layout.fragment_img_preview), IRefresh {
     private fun refreshFromNet() {
         NetUtils.request(RequestType.IMG_GROUP, object : Callback {
             override fun onFailed(msg: String) {
-                Toast.makeText(this@ImagePreviewFragment.context, "请求失败", Toast.LENGTH_SHORT)
-                    .show()
+                view?.post {
+                    Toast.makeText(
+                        this@ImagePreviewFragment.context,
+                        "请求失败",
+                        Toast.LENGTH_SHORT
+                    )
+                        .show()
+                }
             }
 
             override fun onSuccess(data: String) {
@@ -64,7 +70,7 @@ class ImagePreviewFragment : Fragment(R.layout.fragment_img_preview), IRefresh {
                 }
             }
 
-        })
+        }, view)
     }
 
     private fun refreshUI(refreshData: String) {

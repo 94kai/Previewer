@@ -16,18 +16,19 @@
 
         #upload-container {
             position: absolute;
-            top: 10px;
+            top: 20px;
             left: 10px;
         }
     </style>
 </head>
 
 <body>
-<div id="upload-container">
+<div id="upload-container" style="display: none;">
     <input type="file" id="pcd-upload" accept=".pcd"/>
-    <span id="file-name">未选择文件</span>
     <button id="clear-scene">清除场景</button>
-    <button id="load-default">加载默认点云</button>
+    <button id="load-default">加载pcd</button>
+    <button id="load-obj">加载obj</button>
+    <button id="load-ply">加载ply</button>
     <button id="flush">刷新</button>
     <button id="zoomUp">放大</button>
     <button id="zoomDown">缩小</button>
@@ -44,13 +45,19 @@
 </div>
 <script src="./three.js"></script>
 <script src="./PCDLoader.js"></script>
+<script src="./OBJLoader.js"></script>
+<script src="./PLYLoader.js"></script>
 <script src="./OrbitControls.js"></script>
 <script>
+
+    showUploadContainer()
+    // hideUploadContainer()
     // 获取上传按钮和画布元素
     const pcdUpload = document.getElementById('pcd-upload');
-    const fileNameLabel = document.getElementById('file-name');
     const clearSceneButton = document.getElementById('clear-scene');
     const loadDefaultButton = document.getElementById('load-default');
+    const loadObjButton = document.getElementById('load-obj');
+    const loadPlyButton = document.getElementById('load-ply');
     const freshButton = document.getElementById('flush');
 
     const zoomUp = document.getElementById('zoomUp');
@@ -70,11 +77,18 @@
     let moveSpeed = 1;
     let points;
     let scaleSpeed = 0.2; // 增加缩放步进值使效果更明显
-    let zoomSpeed = 5; // 缩放的步进值
+    let zoomSpeed = 1.0; // 缩放的步进值
+    // 添加变量保存初始状态
+    let originalPositions = null;
 
-
+    // let scene;
+    // let camera;
+    // let renderer;
+    // let controls;
     // 设置场景、摄像头和渲染器
     const scene = new THREE.Scene();
+
+    //视野范围，相机默认值 画布的宽高比，近平面，远平面
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -85,25 +99,46 @@
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.addEventListener('change', () => renderer.render(scene, camera));
 
-    const axesHelper = new THREE.AxesHelper(100)
-    scene.add(axesHelper)
+<!--    const axesHelper = new THREE.AxesHelper(100)-->
+<!--    scene.add(axesHelper)-->
 
     // 设置光源
     const light = new THREE.AmbientLight(0xffffff);
     scene.add(light);
 
     // 设置摄像头位置
-    camera.position.z = 50;
+    // camera.position.z = 100;
     // camera.position.set( 0, 0, 1 );
 
-    // 创建PCD加载器
-    const pcdLoader = new THREE.PCDLoader();
     const pointCloudMaterial = new THREE.PointsMaterial({
         size: 0.05,
         color: 0xffffff,
         opacity: 0.7,
         transparent: true,
     });
+
+    function init(){
+        // 设置场景、摄像头和渲染器
+        scene = new THREE.Scene();
+
+        //视野范围，相机默认值 画布的宽高比，近平面，远平面
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(new THREE.Color(5 / 255, 20 / 255, 39 / 255));
+        document.body.appendChild(renderer.domElement);
+
+        // 设置控制器
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.addEventListener('change', () => renderer.render(scene, camera));
+
+<!--        const axesHelper = new THREE.AxesHelper(100)-->
+<!--        scene.add(axesHelper)-->
+
+        // 设置光源
+        const light = new THREE.AmbientLight(0xffffff);
+        scene.add(light);
+    }
 
     // 处理上传的PCD文件
     pcdUpload.addEventListener('change', (event) => {
@@ -116,12 +151,29 @@
             .then(response => response.arrayBuffer())
             .then(data => {
                 loadPcdData(data)
-                fileNameLabel.textContent = 'pointCloud.pcd';
             })
             .catch(error => {
                 console.error('加载文件失败:', error);
                 alert('加载点云失败，请检查文件格式是否正确');
             });
+    });
+
+    loadObjButton.addEventListener('click', () => {
+        fetch('./data/tree.obj')
+            .then(response => response.text())
+            .then(data => {
+                loadObjData(data)
+            })
+    });
+
+    loadPlyButton.addEventListener('click', () => {
+        let file1 = './data/dolphins.ply'
+        let file2 = './data/Lucy100k.ply'
+        fetch(file2)
+            .then(response => response.arrayBuffer())
+            .then(data => {
+                loadPlyData(data)
+            })
     });
 
     function loadPcdByFile(file){
@@ -133,14 +185,104 @@
         
     }
 
+    
+    function loadObjByFile(file){
+        const reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = function(e) {
+            loadObjData(e.target.result)
+        };
+        
+    }
+
+    function loadPlyByFile(file){
+        const reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = function(e) {
+            loadPlyData(e.target.result)
+        };
+        
+    }
+
+    
+    function loadObjData(ObjData){
+        // init()
+        console.log("====>ObjData:",ObjData)
+        clearPointClouds()
+        try {
+            if (ObjData) {
+                const objLoader = new THREE.OBJLoader();
+                points = objLoader.parse(ObjData);
+                // points.material = pointCloudMaterial;
+                scene.add(points);
+                zoomControl('zoomUp',47);
+                saveOriginalState();
+                renderer.render(scene, camera);
+            }else{
+                console.error('objdata is not String');
+                alert('加载obj失败，请检查文件格式是否正确');
+                throw error;
+            }
+            
+        } catch (error) {
+            let msg = {"msg":'加载obj失败,'+ error}
+            console.error(msg);
+            alert(JSON.stringify(msg));
+            throw error;
+        }
+
+    }
+
+    function loadPlyData(PlyData){
+        clearPointClouds()
+        try {
+            if (PlyData instanceof ArrayBuffer) {
+                const plyLoader = new THREE.PLYLoader();
+                const points2 = plyLoader.parse(PlyData);
+                // points.material = pointCloudMaterial;
+                points2.computeVertexNormals()
+                const material = new THREE.MeshStandardMaterial( { color: 0x0055ff, flatShading: true } );
+				const mesh = new THREE.Mesh( points2, material );
+                // mesh.position.x = - 0.2;
+                // mesh.position.y = - 0.02;
+                // mesh.position.z = - 0.2;
+                mesh.scale.multiplyScalar( 0.0006 );
+
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                scene.add(mesh);
+                points = mesh;
+                zoomControl('zoomUp',47);
+                saveOriginalState();
+                renderer.render(scene, camera);
+            }else{
+                console.error('objdata is not String');
+                alert('加载obj失败，请检查文件格式是否正确');
+                throw error;
+            }
+            
+        } catch (error) {
+            let msg = {"msg":'加载obj失败,'+ error}
+            console.error(msg);
+            alert(JSON.stringify(msg));
+            throw error;
+        }
+
+    }
+
 
     function loadPcdData(pcdData){
+        // init()
         clearPointClouds()
         try {
             if (pcdData instanceof ArrayBuffer) {
+                const pcdLoader = new THREE.PCDLoader();
                 points = pcdLoader.parse(pcdData);
                 points.material = pointCloudMaterial;
                 scene.add(points);
+
+                // 保存初始状态
+                saveOriginalState();
                 renderer.render(scene, camera);
             }else{
                 console.error('pcdData is not ArrayBuffer');
@@ -157,9 +299,77 @@
 
     }
 
+    // 添加保存初始状态的函数
+    function saveOriginalState() {
+        if (!points) return;
+        
+        // 保存初始几何体数据
+        if (points instanceof THREE.Group) {
+            // 遍历组中的所有子对象
+            points.traverse(function(child) {
+                if (child.geometry && child.geometry.attributes.position) {
+                    const positions = child.geometry.attributes.position;
+                    // 为每个子对象保存原始位置数据的深拷贝
+                    child.geometry.originalPositions = Float32Array.from(positions.array);
+                }
+            });
+        } else if (points.geometry && points.geometry.attributes.position) {
+            const positions = points.geometry.attributes.position;
+            // 深拷贝顶点数据
+            points.geometry.originalPositions = Float32Array.from(positions.array);
+        }
+
+        // 保存初始变换状态的深拷贝
+        points.userData.originalMatrix = points.matrix.clone();
+        points.userData.originalPosition = points.position.clone();
+        points.userData.originalRotation = points.rotation.clone();
+        points.userData.originalScale = points.scale.clone();
+        points.userData.originalQuaternion = points.quaternion.clone();
+
+        points.userData.originalCameraPosition = camera.position.clone();
+        console.log("====>points.userData.originalCameraPosition:",points.userData.originalCameraPosition)
+    }
+
+    // 修改重置几何体的函数
+    function resetGeometry() {
+        if (!points) return;
+
+        // 重置几何体数据
+        if (points instanceof THREE.Group) {
+            // 遍历组中的所有子对象
+            points.traverse(function(child) {
+                if (child.geometry && child.geometry.originalPositions) {
+                    const positions = child.geometry.attributes.position;
+                    positions.array.set(child.geometry.originalPositions);
+                    positions.needsUpdate = true;
+                }
+            });
+        } else if (points.geometry && points.geometry.originalPositions) {
+            const positions = points.geometry.attributes.position;
+            positions.array.set(points.geometry.originalPositions);
+            positions.needsUpdate = true;
+        }
+
+        // 完全重置变换状态
+        points.matrix.identity(); // 重置矩阵为单位矩阵
+        points.matrixWorld.identity(); // 重置世界矩阵
+        
+        // 重置所有变换属性
+        points.position.copy(points.userData.originalPosition || new THREE.Vector3());
+        points.rotation.copy(points.userData.originalRotation || new THREE.Euler());
+        points.scale.copy(points.userData.originalScale || new THREE.Vector3(1, 1, 1));
+        points.quaternion.copy(points.userData.originalQuaternion || new THREE.Quaternion());
+
+        // 更新矩阵
+        points.matrixAutoUpdate = true;
+        points.updateMatrix();
+        points.updateMatrixWorld(true);
+
+        renderer.render(scene, camera);
+    }
 
     function zoomControl(zoomType,zoomSpeed){
-        let maxDistance = 200;
+        let maxDistance = 200000;
         let minDistance = 10;
         if(points){
             let distance = camera.position.length(); // 计算相机到原点的距离
@@ -168,16 +378,19 @@
 
             if(zoomType == 'zoomUp'){
                 // 限制最小距离
-                if(distance > minDistance){
-                    camera.position.addScaledVector(direction, zoomSpeed);
-                }
+                // if(distance > minDistance){
+                //     camera.position.addScaledVector(direction, zoomSpeed);
+                // }
+                camera.position.addScaledVector(direction, zoomSpeed);
             }else if(zoomType == 'zoomDown'){
                 // 限制最大距离
-                if(distance < maxDistance){
-                    camera.position.addScaledVector(direction, -zoomSpeed);
-                }
+                // if(distance < maxDistance){
+                //     camera.position.addScaledVector(direction, -zoomSpeed);
+                // }
+                camera.position.addScaledVector(direction, -zoomSpeed);
                 
             }
+            console.log("====>camera.position:",camera.position)
             renderer.render(scene, camera);
         }
     }
@@ -210,8 +423,9 @@
      *              zoomUp-放大, zoomDown-缩小, reset-重置视角, 
      *              rotateX-X轴旋转, rotateY-Y轴旋转, rotateZ-Z轴旋转, 
      *              horizontalFlip-水平翻转, verticalFlip-垂直翻转
+     * controlValue: 控制值，某些控制方法需要传递控制的单位
      */
-    function moveControl(controlType){
+    function moveControl(controlType,controlValue){
         if(points){
             console.log("===>",controlType)
             if(controlType == 'moveUp'){
@@ -222,18 +436,30 @@
                 points.position.x -= moveSpeed;
             }else if(controlType == 'moveRight'){
                 points.position.x += moveSpeed;
+            }else if(controlType == 'moveScreenUp'){
+                moveInScreenDirection('up');
+            }else if(controlType == 'moveScreenDown'){
+                moveInScreenDirection('down');
+            }else if(controlType == 'moveScreenLeft'){
+                moveInScreenDirection('left');
+            }else if(controlType == 'moveScreenRight'){
+                moveInScreenDirection('right');
             }else if(controlType == "zoomUp"){
                 zoomControl('zoomUp',zoomSpeed);
             }else if(controlType == "zoomDown"){
                 zoomControl('zoomDown',zoomSpeed);
             }else if(controlType == "reset"){
                 resetObjectView()
-            }else if(controlType == "rotateY" || controlType == "horizontalFlip"){
-                smoothPointCloudRotate('y', Math.PI);
-            }else if(controlType == "rotateX" || controlType == "verticalFlip"){
-                smoothPointCloudRotate('x', Math.PI);
+            }else if(controlType == "horizontalFlip"){
+                flipInScreenDirection('horizontal');
+            }else if(controlType == "verticalFlip"){
+                flipInScreenDirection('vertical');
+            }else if(controlType == "rotateY"){
+                pointCloudRotateByAngle('y', controlValue);
+            }else if(controlType == "rotateX"){
+                pointCloudRotateByAngle('x', controlValue);
             }else if(controlType == "rotateZ"){
-                smoothPointCloudRotate('z', Math.PI/10);
+                pointCloudRotateByAngle('z', controlValue);
             }
             logCameraInfo()
             renderer.render(scene, camera);
@@ -264,19 +490,19 @@
 
     // 修改移动按钮的事件处理
     moveUp.addEventListener('click', () => {
-        moveControl('moveUp');
+        moveControl('moveScreenUp');
     });
 
     moveDown.addEventListener('click', () => {
-        moveControl('moveDown');
+        moveControl('moveScreenDown');
     });
 
     moveLeft.addEventListener('click', () => {
-        moveControl('moveLeft');
+        moveControl('moveScreenLeft');
     });
 
     moveRight.addEventListener('click', () => {
-        moveControl('moveRight');
+        moveControl('moveScreenRight');
     });
 
     zoomUp.addEventListener('click', () => {
@@ -292,9 +518,14 @@
     // 修改清除点云函数
     function clearPointClouds() {
         resetObjectView();
+        originalPositions = null; // 清除保存的初始状态
         for (const object of scene.children.slice()) {
             if (object instanceof THREE.Points) {
                 object.rotation.set(0, 0, 0); // 重置旋转
+                scene.remove(object);
+            }else if(object instanceof THREE.Group){
+                scene.remove(object);
+            }else if(object instanceof THREE.Mesh){
                 scene.remove(object);
             }
         }
@@ -302,6 +533,7 @@
 
     // 为清除场景按钮添加点击事件监听器
     clearSceneButton.addEventListener('click', () => {
+        console.log("clearSceneButton~~~~")
         clearPointClouds();
         renderer.render(scene, camera);
     });
@@ -342,45 +574,61 @@
         resetObjectView()
     });
 
-    // 添加一些预设视角按钮
-    const viewButtons = {
-        'front': new THREE.Vector3(0, 0, 50),
-        'back': new THREE.Vector3(0, 0, -50),
-        'top': new THREE.Vector3(0, 50, 0),
-        'bottom': new THREE.Vector3(0, -50, 0),
-        'left': new THREE.Vector3(-50, 0, 0),
-        'right': new THREE.Vector3(50, 0, 0)
-    };
 
-    // 添加预设视角的HTML按钮
-    Object.keys(viewButtons).forEach(view => {
-        const button = document.createElement('button');
-        button.textContent = view + '视图';
-        button.addEventListener('click', () => {
-            camera.position.copy(viewButtons[view]);
-            camera.lookAt(scene.position);
-            renderer.render(scene, camera);
-        });
-        document.getElementById('upload-container').appendChild(button);
-    });
+    // const viewButtons = {
+    //     'front': new THREE.Vector3(0, 0, 50),
+    //     'back': new THREE.Vector3(0, 0, -50),
+    //     'top': new THREE.Vector3(0, 50, 0),
+    //     'bottom': new THREE.Vector3(0, -50, 0),
+    //     'left': new THREE.Vector3(-50, 0, 0),
+    //     'right': new THREE.Vector3(50, 0, 0)
+    // };
+
+    // Object.keys(viewButtons).forEach(view => {
+    //     const button = document.createElement('button');
+    //     button.textContent = view + '视图';
+    //     button.addEventListener('click', () => {
+    //         camera.position.copy(viewButtons[view]);
+    //         camera.lookAt(scene.position);
+    //         renderer.render(scene, camera);
+    //     });
+    //     document.getElementById('upload-container').appendChild(button);
+    // });
 
     function resetCameraView(){
+        // if (points && points.userData.originalCameraPosition) {
+        //     camera.position.copy(points.userData.originalCameraPosition);
+        //     camera.lookAt(scene.position);
+        // }else{
+        //     camera.position.set(0, 0, 50);
+        //     camera.lookAt(scene.position);
+        
+        // }
         camera.position.set(0, 0, 50);
         camera.lookAt(scene.position);
         renderer.render(scene, camera);
     }
 
     function resetObjectView(){
-        // 重置点云旋转
-        resetPointCloudRotation();
-        // 重置相机位置
-        resetCameraView();
+        console.log("====>resetObjectView")
+        if (points) {
+            resetPointCloudRotation();
+            resetGeometry(); // 重置几何体到初始状态
+            resetCameraView()
+        } else {
+            resetCameraView()
+        }
     }
 
     function CameraMove(direction, distance) {
         camera.position[direction] += distance;
     }
     
+
+    var dataStr = ''
+    function append(content) {
+        dataStr = dataStr.concat(content)
+    }
 
     function loadPcd(pdcPath) {
         msgArrayBuffer.postMessage(pdcPath)
@@ -394,7 +642,65 @@
             moveControl(event.data)
         }
     }
-    
+
+    // base64 转 ArrayBuffer 的函数
+    function base64ToArrayBuffer(base64) {
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    function base64ToText(base64) {
+        return atob(base64);
+    }
+
+    function showPcd(data) {
+        console.log("showPcd");
+        try {
+            const arrayBuffer = base64ToArrayBuffer(data);
+            loadPcdData(arrayBuffer);
+        } catch (error) {
+            console.error('Base64 转换或加载失败:', error);
+            alert('数据转换失败: ' + error.message);
+        }
+    }
+
+    function showPly(data) {
+        console.log("showPly");
+        try {
+            const arrayBuffer = base64ToArrayBuffer(data);
+            loadPlyData(arrayBuffer);
+        } catch (error) {
+            console.error('Base64 转换或加载失败:', error);
+            alert('数据转换失败: ' + error.message);
+        }
+    }
+
+    function showObj(data) {
+        console.log("showObj");
+        try {
+            const objdata = base64ToText(data);
+            loadObjData(objdata);
+        } catch (error) {
+            console.error('Base64 转换或加载失败:', error);
+            alert('数据转换失败: ' + error.message);
+        }
+    }
+
+    function show(data) {
+        console.log("show");
+        try {
+            const arrayBuffer = base64ToArrayBuffer(data);
+            // 加载点云数据
+            loadPcdData(arrayBuffer);
+        } catch (error) {
+            console.error('Base64 转换或加载失败:', error);
+            alert('数据转换失败: ' + error.message);
+        }
+    }
 
     // 相机旋转函数
     function smoothCameraRotate(axis, angle) {
@@ -439,6 +745,10 @@
     function toDegrees(angle){
         return angle * (180 / Math.PI);
     }
+
+    function toRadians(angle){
+        return angle * (Math.PI / 180);
+    }
     // 点云旋转函数
     function smoothPointCloudRotate(axis, angle) {
         if (!points) return;
@@ -468,11 +778,383 @@
         animate();
     }
 
+    function pointCloudRotate(axis, angle) {
+        if (!points) return;
+
+        console.log("====>pointCloudRotate:",axis,toDegrees(angle))
+
+        switch(axis) {
+            case 'x':
+                points.rotation.x += angle;
+                break;
+            case 'y':
+                points.rotation.y += angle;
+                break;
+            case 'z':
+                points.rotation.z += angle;
+                break;
+        }
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+
+    function pointCloudRotateByAngle(axis, angle) {
+        if (!points) return;
+        let angleRadians = Math.PI;
+        if( !isNaN(angle) ){
+            angleRadians = toRadians(angle);
+        }
+        console.log("====>pointCloudRotateByAngle:",axis,angleRadians)
+        switch(axis) {
+            case 'x':
+                points.rotation.x += angleRadians;
+                break;
+            case 'y':
+                points.rotation.y += angleRadians;
+                break;
+            case 'z':
+                points.rotation.z += angleRadians;
+                break;
+        }
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+
     function resetPointCloudRotation() {
         if (points) {
             points.rotation.set(0, 0, 0);
             renderer.render(scene, camera);
         }
+    }
+
+    function moveInXYZDirection(direction){
+        if(points){
+            if(direction == 'up'){
+                points.position.y += moveSpeed;
+            }else if(direction == 'down'){
+                points.position.y -= moveSpeed;
+            }else if(direction == 'left'){
+                points.position.x -= moveSpeed;
+            }else if(direction == 'right'){
+                points.position.x += moveSpeed;
+            }
+        }
+    }
+
+    // 修改基于屏幕方向的移动函数
+    function moveInScreenDirection(direction) {
+        if (!points) return;
+
+        // 获取相机的视角方向
+        const cameraDirection = new THREE.Vector3();
+        camera.getWorldDirection(cameraDirection);
+        
+        // 计算相机的右方向向量（叉乘相机方向和世界上方向）
+        const rightVector = new THREE.Vector3();
+        rightVector.crossVectors(cameraDirection, camera.up).normalize();
+        
+        // 计算相机的上方向向量（叉乘右方向和相机方向）
+        const upVector = new THREE.Vector3();
+        upVector.crossVectors(rightVector, cameraDirection).normalize();
+
+        // 根据屏幕方向移动点云
+        switch(direction) {
+            case 'up':
+                points.position.add(upVector.multiplyScalar(moveSpeed));
+                break;
+            case 'down':
+                points.position.add(upVector.multiplyScalar(-moveSpeed));
+                break;
+            case 'left':
+                points.position.add(rightVector.multiplyScalar(-moveSpeed));
+                break;
+            case 'right':
+                points.position.add(rightVector.multiplyScalar(moveSpeed));
+                break;
+        }
+
+        // 更新控制器的目标点，使其跟随点云移动
+        // controls.target.copy(points.position);
+        // controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // 添加基于屏幕方向的翻转函数
+    function flipInScreenDirection(direction) {
+        if (!points) return;
+
+        // 获取相机的视角方向（指向屏幕内）
+        const cameraDirection = new THREE.Vector3();
+        camera.getWorldDirection(cameraDirection);
+        
+        // 计算相机的右方向向量（屏幕的水平方向）
+        const rightVector = new THREE.Vector3();
+        rightVector.crossVectors(cameraDirection, camera.up).normalize();
+        
+        // 计算相机的上方向向量（屏幕的垂直方向）
+        const upVector = new THREE.Vector3();
+        upVector.crossVectors(rightVector, cameraDirection).normalize();
+
+        // 计算屏幕中心点：相机位置加上相机方向乘以到目标的距离
+        const screenCenter = new THREE.Vector3();
+        const distanceToTarget = camera.position.distanceTo(controls.target);
+        screenCenter.copy(camera.position).add(cameraDirection.multiplyScalar(distanceToTarget));
+
+        // 处理 Group 对象
+        if (points instanceof THREE.Group) {
+            // 遍历组中的所有子对象
+            points.traverse(function(child) {
+                if (child.geometry && child.geometry.attributes.position) {
+                    flipObject(child, screenCenter, rightVector, upVector, cameraDirection, direction);
+                }
+            });
+        } else if (points.geometry && points.geometry.attributes.position) {
+            // 处理单个对象
+            flipObject(points, screenCenter, rightVector, upVector, cameraDirection, direction);
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    // 添加处理单个对象翻转的函数
+    function flipObject(object, screenCenter, rightVector, upVector, cameraDirection, direction) {
+        const positions = object.geometry.attributes.position;
+        const tempVector = new THREE.Vector3();
+        const worldMatrix = object.matrixWorld;
+        const worldMatrixInverse = object.matrixWorld.clone().invert();
+
+        // 对每个顶点进行镜像处理
+        for (let i = 0; i < positions.count; i++) {
+            // 获取顶点在局部坐标系中的位置
+            tempVector.fromBufferAttribute(positions, i);
+
+            // 将顶点转换到世界坐标系
+            tempVector.applyMatrix4(worldMatrix);
+
+            // 计算顶点相对于屏幕中心的向量
+            const toCenter = tempVector.clone().sub(screenCenter);
+
+            // 将向量分解到屏幕空间的各个方向
+            const rightComponent = toCenter.dot(rightVector);
+            const upComponent = toCenter.dot(upVector);
+            const depthComponent = toCenter.dot(cameraDirection.normalize());
+
+            // 根据翻转类型进行镜像
+            if (direction === 'horizontal') {
+                // 水平镜像：反转水平分量
+                tempVector.copy(screenCenter)
+                    .add(rightVector.clone().multiplyScalar(-rightComponent))
+                    .add(upVector.clone().multiplyScalar(upComponent))
+                    .add(cameraDirection.clone().multiplyScalar(depthComponent));
+            } else if (direction === 'vertical') {
+                // 垂直镜像：反转垂直分量
+                tempVector.copy(screenCenter)
+                    .add(rightVector.clone().multiplyScalar(rightComponent))
+                    .add(upVector.clone().multiplyScalar(-upComponent))
+                    .add(cameraDirection.clone().multiplyScalar(depthComponent));
+            }
+
+            // 将点转换回局部坐标系
+            tempVector.applyMatrix4(worldMatrixInverse);
+            positions.setXYZ(i, tempVector.x, tempVector.y, tempVector.z);
+        }
+
+        // 标记几何体需要更新
+        positions.needsUpdate = true;
+    }
+
+    function flipInScreenDirection2(direction) {
+        if (!points) return;
+
+        // 获取相机的视角方向（指向屏幕内）
+        const cameraDirection = new THREE.Vector3();
+        camera.getWorldDirection(cameraDirection);
+        
+        // 计算相机的右方向向量（屏幕的水平方向）
+        const rightVector = new THREE.Vector3();
+        rightVector.crossVectors(cameraDirection, camera.up).normalize();
+        
+        // 计算相机的上方向向量（屏幕的垂直方向）
+        const upVector = new THREE.Vector3();
+        upVector.crossVectors(rightVector, cameraDirection).normalize();
+
+        // 使用点云的当前位置作为镜像中心点
+        const mirrorCenter = points.position.clone();
+
+        // 获取点云的所有顶点
+        const positions = points.geometry.attributes.position;
+        const tempVector = new THREE.Vector3();
+        const worldMatrix = points.matrixWorld;
+        const worldMatrixInverse = points.matrixWorld.clone().invert();
+
+        // 对每个顶点进行镜像处理
+        for (let i = 0; i < positions.count; i++) {
+            // 获取顶点在局部坐标系中的位置
+            tempVector.fromBufferAttribute(positions, i);
+
+            // 将顶点转换到世界坐标系
+            tempVector.applyMatrix4(worldMatrix);
+
+            // 计算顶点相对于镜像中心的向量
+            const toCenter = tempVector.clone().sub(mirrorCenter);
+
+            // 将向量分解到屏幕空间的各个方向
+            const rightComponent = toCenter.dot(rightVector);
+            const upComponent = toCenter.dot(upVector);
+            const depthComponent = toCenter.dot(cameraDirection);
+
+            // 根据翻转类型进行镜像
+            if (direction === 'horizontal') {
+                // 水平镜像：反转水平分量
+                tempVector.copy(mirrorCenter)
+                    .add(rightVector.clone().multiplyScalar(-rightComponent))
+                    .add(upVector.clone().multiplyScalar(upComponent))
+                    .add(cameraDirection.clone().multiplyScalar(depthComponent));
+            } else if (direction === 'vertical') {
+                // 垂直镜像：反转垂直分量
+                tempVector.copy(mirrorCenter)
+                    .add(rightVector.clone().multiplyScalar(rightComponent))
+                    .add(upVector.clone().multiplyScalar(-upComponent))
+                    .add(cameraDirection.clone().multiplyScalar(depthComponent));
+            }
+
+            // 将点转换回局部坐标系
+            tempVector.applyMatrix4(worldMatrixInverse);
+            positions.setXYZ(i, tempVector.x, tempVector.y, tempVector.z);
+        }
+
+        // 标记几何体需要更新
+        positions.needsUpdate = true;
+        
+        // 渲染场景
+        renderer.render(scene, camera);
+    }
+
+    function flipInScreenDirection3(direction) {
+        if (!points) return;
+
+        // 获取相机的视角方向（指向屏幕内）
+        const cameraDirection = new THREE.Vector3();
+        camera.getWorldDirection(cameraDirection);
+        
+        // 计算相机的右方向向量（屏幕的水平方向）
+        const rightVector = new THREE.Vector3();
+        rightVector.crossVectors(cameraDirection, camera.up).normalize();
+        
+        // 计算相机的上方向向量（屏幕的垂直方向）
+        const upVector = new THREE.Vector3();
+        upVector.crossVectors(rightVector, cameraDirection).normalize();
+
+        // 计算屏幕平面中心点（使用控制器的目标点）
+        const screenCenter = controls.target.clone();
+
+        // 获取点云的所有顶点
+        const positions = points.geometry.attributes.position;
+        const tempVector = new THREE.Vector3();
+
+        // 对每个顶点进行镜像处理
+        for (let i = 0; i < positions.count; i++) {
+            // 获取顶点在世界坐标系中的位置
+            tempVector.fromBufferAttribute(positions, i);
+            tempVector.applyMatrix4(points.matrixWorld);
+
+            // 计算顶点到屏幕中心的向量
+            const toCenter = tempVector.clone().sub(screenCenter);
+
+            // 将向量分解到屏幕空间的各个方向
+            const rightComponent = toCenter.dot(rightVector);
+            const upComponent = toCenter.dot(upVector);
+            const depthComponent = toCenter.dot(cameraDirection);
+
+            // 根据翻转类型进行镜像
+            if (direction === 'horizontal') {
+                // 水平镜像：反转水平分量
+                tempVector.copy(screenCenter)
+                    .add(rightVector.clone().multiplyScalar(-rightComponent)) // 水平分量取反
+                    .add(upVector.clone().multiplyScalar(upComponent))        // 垂直分量保持不变
+                    .add(cameraDirection.clone().multiplyScalar(depthComponent)); // 深度保持不变
+            } else if (direction === 'vertical') {
+                // 垂直镜像：反转垂直分量
+                tempVector.copy(screenCenter)
+                    .add(rightVector.clone().multiplyScalar(rightComponent))   // 水平分量保持不变
+                    .add(upVector.clone().multiplyScalar(-upComponent))        // 垂直分量取反
+                    .add(cameraDirection.clone().multiplyScalar(depthComponent)); // 深度保持不变
+            }
+
+            // 将点转换回局部坐标系
+            tempVector.applyMatrix4(points.matrixWorld.invert());
+            positions.setXYZ(i, tempVector.x, tempVector.y, tempVector.z);
+        }
+
+        // 标记几何体需要更新
+        positions.needsUpdate = true;
+        
+        // 渲染场景
+        renderer.render(scene, camera);
+    }
+
+    // 添加自动调整相机位置的函数
+    function adjustCameraToObject() {
+        if (!points) return;
+
+        // 计算包围盒
+        points.geometry.computeBoundingBox();
+        const boundingBox = points.geometry.boundingBox;
+        
+        // 计算包围盒的中心点和尺寸
+        const center = new THREE.Vector3();
+        boundingBox.getCenter(center);
+        const size = new THREE.Vector3();
+        boundingBox.getSize(size);
+
+        // 计算包围盒的最大尺寸
+        const maxDim = Math.max(size.x, size.y, size.z);
+        
+        // 调整点云大小，使其适合显示
+        const targetSize = 100; // 目标显示大小
+        const scale = targetSize / maxDim;
+        points.scale.set(scale, scale, scale);
+
+        // 重新计算包围盒
+        points.geometry.computeBoundingBox();
+        boundingBox.getCenter(center);
+        boundingBox.getSize(size);
+
+        // 设置相机参数
+        camera.fov = 45; // 调整视野角度
+        const distance = targetSize * 0.5; // 设置相机距离
+        camera.position.set(0, 0, distance);
+        camera.near = 0.1;
+        camera.far = distance * 4;
+        
+        // 将物体移动到中心
+        points.position.copy(center).multiplyScalar(-scale);
+        
+        // 更新相机和控制器
+        camera.updateProjectionMatrix();
+        controls.target.set(0, 0, 0);
+        controls.update();
+        
+        // 渲染场景
+        renderer.render(scene, camera);
+    }
+
+    // 添加控制 upload-container 显示/隐藏的函数
+    function toggleUploadContainer(show) {
+        const container = document.getElementById('upload-container');
+        if (container) {
+            container.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    // 隐藏 upload-container
+    function hideUploadContainer() {
+        toggleUploadContainer(false);
+    }
+
+    // 显示 upload-container
+    function showUploadContainer() {
+        toggleUploadContainer(true);
     }
 
 </script>

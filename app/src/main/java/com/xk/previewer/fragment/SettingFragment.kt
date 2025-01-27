@@ -10,6 +10,7 @@ import android.widget.TextView
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import com.xk.previewer.R
+import com.xk.previewer.activity.MainActivity
 import com.xk.previewer.utils.SpUtils
 
 /**
@@ -20,6 +21,7 @@ class SettingFragment : Fragment(R.layout.fragment_setting) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        (activity as? MainActivity)?.setDesc("")
         view.findViewById<EditText>(R.id.url)
             .setText(SpUtils.getInstance().get("url").ifEmpty { "请输入url" })
 

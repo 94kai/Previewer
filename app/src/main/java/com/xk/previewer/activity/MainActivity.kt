@@ -3,15 +3,13 @@ package com.xk.previewer.activity
 import android.os.Bundle
 import android.view.View
 import android.view.View.OnClickListener
-import android.widget.Spinner
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.xk.previewer.IRefresh
 import com.xk.previewer.view.NavigationView
 import com.xk.previewer.R
 import com.xk.previewer.fragment.ImagePreviewFragment
-import com.xk.previewer.fragment.PointCloudPreviewFragment
+import com.xk.previewer.fragment.ThreeDimensionPreviewFragment
 import com.xk.previewer.fragment.SettingFragment
 
 
@@ -27,7 +25,7 @@ class MainActivity : AppCompatActivity() {
         val navigationView = findViewById<NavigationView>(R.id.left_root)
         navigationView.init(getSupportFragmentManager(), R.id.right_root);
         navigationView.addTab("图片", R.mipmap.image, ImagePreviewFragment());
-        navigationView.addTab("云图", R.mipmap.cloud, PointCloudPreviewFragment());
+        navigationView.addTab("云图", R.mipmap.cloud, ThreeDimensionPreviewFragment());
         navigationView.addTab("设置", R.mipmap.setting, SettingFragment());
         navigationView.addTab("刷新", R.mipmap.refresh, object : OnClickListener {
             override fun onClick(p0: View?) {
@@ -36,7 +34,6 @@ class MainActivity : AppCompatActivity() {
                     currentFragment.refresh()
                 }
             }
-
         });
 
     }

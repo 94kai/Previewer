@@ -5,12 +5,51 @@ package com.xk.previewer.net
  * @date 2025/01/11
  */
 object Mock {
-
-    fun refreshData(type: RequestType, listener: Callback) {
-        if (type == RequestType.IMG_GROUP) {
-            listener.onSuccess(
-                """
+    val _3D ="""
             {
+            code:0,
+            msg:"success",
+            data:[
+                {
+                    title:"pcd1.pcd",
+                    desc:"中科院的房子111",
+                    images:[
+                        "https://test/file/pcd1.pcd"
+                    ]
+                },
+                {
+                    title:"off.pcd",
+                    desc:"中科院的房子113",
+                    images:[
+                        "https://test/file/off.pcd"
+                    ]
+                },
+                {
+                    title:"dolphins.ply",
+                    desc:"中科院的房子113",
+                    images:[
+                        "https://test/file/dolphins.ply"
+                    ]
+                },
+                {
+                    title:"tree.obj",
+                    desc:"中科院的房子113",
+                    images:[
+                        "https://test/file/tree.obj"
+                    ]
+                },
+                {
+                    title:"dolphins_colored.ply",
+                    desc:"",
+                    images:[
+                        "https://test/file/dolphins_colored.ply"
+                    ]
+                }
+            ]
+            }
+    """.trimIndent()
+    val IMG = """
+                           {
             code:0,
             msg:"success",
             data:[
@@ -86,54 +125,5 @@ object Mock {
                 }
             ]
             }
-        """.trimIndent()
-            )
-        } else {
-            listener.onSuccess(
-                """
-            {
-            code:0,
-            msg:"success",
-            data:[
-                {
-                    title:"建筑",
-                    desc:"中科院的房子111",
-                    images:[
-                        "off.pcd"
-                    ]
-                },
-                {
-                    title:"中科院1",
-                    desc:"中科院的房子113",
-                    images:[
-                        "pcd1.pcd"
-                    ]
-                },
-                {
-                    title:"中科院2",
-                    desc:"中科院的房子113",
-                    images:[
-                        "pcd2.pcd"
-                    ]
-                },
-                {
-                    title:"中科院3",
-                    desc:"中科院的房子113",
-                    images:[
-                        "pcd3.pcd"
-                    ]
-                },
-                {
-                    title:"autoware-214",
-                    desc:"",
-                    images:[
-                        "autoware-241230.pcd"
-                    ]
-                }
-            ]
-            }
-        """.trimIndent()
-            )
-        }
-    }
+    """.trimIndent()
 }
