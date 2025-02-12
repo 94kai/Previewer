@@ -156,7 +156,7 @@ class ImagePreviewFragment : Fragment(R.layout.fragment_img_preview), IRefresh {
         mainImageList?.adapter = mainImgListAdapter
 
         view?.findViewById<CropImageView>(R.id.crop_img)?.setImageUrl(data[position].images.last())
-        view?.findViewById<CropImageView>(R.id.crop_img)?.setOnClickListener{
+        view?.findViewById<CropImageView>(R.id.crop_img)?.setOnClickListener {
             val intent = Intent(
                 view?.context,
                 FullPreviewActivity::class.java

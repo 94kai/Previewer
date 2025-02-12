@@ -65,7 +65,7 @@ class CustomWebView(context: Context, attrs: AttributeSet?) : WebView(context, a
         var s: String = Base64.encodeToString(readAllBytes, Base64.DEFAULT)
         s = s.replace("\n", "")
         post {
-            evaluateJavascript("hideUploadContainer()", null)
+//            evaluateJavascript("hideUploadContainer()", null)
 
             if (_3DPath.endsWith("pcd")) {
                 evaluateJavascript("showPcd('${s}')", null)
