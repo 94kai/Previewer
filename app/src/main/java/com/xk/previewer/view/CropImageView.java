@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.DashPathEffect;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -24,6 +25,8 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.Toast;
 
+import com.xk.previewer.utils.Utils;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -41,6 +44,7 @@ public class CropImageView extends CustomImageView {
 
     private static final int DEFAULT_LINE_COLOR = 0xFF43CAD5;//线条颜色
     private static final float DEFAULT_LINE_WIDTH = 1; //dp
+    private static final float DEFAULT_EDIT_LINE_WIDTH = 3; //dp
     private static final int DEFAULT_MASK_ALPHA = 80; // 0 - 255
     private static final int DEFAULT_MAGNIFIER_CROSS_COLOR = 0x51FF2D55;
     private static final float DEFAULT_GUIDE_LINE_WIDTH = 0.3f;//dp
@@ -51,6 +55,7 @@ public class CropImageView extends CustomImageView {
     private Paint mPointPaint;
     private Paint mPointFillPaint;
     private Paint mLinePaint;
+    private Paint mEditLinePaint;
     private Paint mMaskPaint;
     private Paint mGuideLinePaint;
     private Paint mMagnifierPaint;
@@ -64,11 +69,14 @@ public class CropImageView extends CustomImageView {
     private float[] mMatrixValue = new float[9];
     private Xfermode mMaskXfermode = new PorterDuffXfermode(PorterDuff.Mode.DST_OUT);
     private Path mPointLinePath = new Path();
+
+    private Path mEditLinePath = new Path();
     private Matrix mMagnifierMatrix = new Matrix();
 
     Point[] mCropPoints; // 裁剪区域, 0->LeftTop, 1->RightTop， 2->RightBottom, 3->LeftBottom
     Point[] mEdgeMidPoints; //边中点
     float mLineWidth; // 选区线的宽度
+    float mEditLineWidth; // 选区线的宽度
     int mPointColor; //锚点颜色
     float mPointWidth; //锚点宽度
     float mGuideLineWidth; // 辅助线宽度
@@ -124,7 +132,7 @@ public class CropImageView extends CustomImageView {
         if (open) {
             setCropPoints(null);
             setShowGuideLine(true);
-        }else{
+        } else {
             mCropPoints = null;
             setShowGuideLine(false);
             invalidate();
@@ -140,13 +148,20 @@ public class CropImageView extends CustomImageView {
             throw new RuntimeException(e);
         }
         getBitmap().compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
-        Toast.makeText(getContext(), "文件保存成功", Toast.LENGTH_SHORT).show();
+        File file = new File(getContext().getExternalCacheDir(), path.getName() + ".png");
+        if (Utils.INSTANCE.copyFile(path.getAbsolutePath(), file.getAbsolutePath())) {
+            Utils.INSTANCE.showToast(getContext(), "文件保存路径为：" + file.getAbsolutePath());
+        } else {
+            Toast.makeText(getContext(), "文件保存失败", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void applyCrop() {
         if (getCropPoints() != null) {
             Bitmap newBitmap = getCropBitmap();
-            setImageBitmap(newBitmap);
+            if (newBitmap != null) {
+                setImageBitmap(newBitmap);
+            }
         }
     }
 
@@ -175,6 +190,14 @@ public class CropImageView extends CustomImageView {
         Canvas canvas = new Canvas(croppedBitmap);
         canvas.concat(matrix);
         canvas.drawBitmap(getBitmap(), 0, 0, null);
+        if (croppedBitmap.getPixel(width / 2, height / 2) == 0) {
+            if (croppedBitmap.getPixel(width / 3, height / 3) == 0) {
+                if (croppedBitmap.getPixel(width / 4, height / 4) == 0) {
+                    Toast.makeText(getContext(), "拉伸角度过大，当前设备无法支持", Toast.LENGTH_SHORT).show();
+                    return null;
+                }
+            }
+        }
         return croppedBitmap;
     }
 
@@ -220,6 +243,7 @@ public class CropImageView extends CustomImageView {
         mMaskAlpha = Math.min(Math.max(0, DEFAULT_MASK_ALPHA), 255);
         mLineColor = DEFAULT_LINE_COLOR;
         mLineWidth = dp2px(DEFAULT_LINE_WIDTH);
+        mEditLineWidth = dp2px(DEFAULT_EDIT_LINE_WIDTH);
         mPointColor = DEFAULT_LINE_COLOR;
         mPointWidth = dp2px(DEFAULT_LINE_WIDTH);
         mMagnifierCrossColor = DEFAULT_MAGNIFIER_CROSS_COLOR;
@@ -465,6 +489,14 @@ public class CropImageView extends CustomImageView {
         mLinePaint.setStrokeWidth(mLineWidth);
         mLinePaint.setStyle(Paint.Style.STROKE);
 
+        mEditLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        //mLinePaint.setColor(mLineColor);
+        mEditLinePaint.setColor(Color.BLACK);
+        mEditLinePaint.setStrokeWidth(mEditLineWidth);
+        float[] intervals = {20, 10}; // 虚线的线段长度和间隔长度
+        mEditLinePaint.setPathEffect(new DashPathEffect(intervals, 0));
+        mEditLinePaint.setStyle(Paint.Style.STROKE);
+
         mMaskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mMaskPaint.setColor(Color.BLACK);
         mMaskPaint.setStyle(Paint.Style.FILL);
@@ -500,6 +532,7 @@ public class CropImageView extends CustomImageView {
         super.onDraw(canvas);
         //初始化图片位置信息
         getDrawablePosition();
+        onDrawEditLines(canvas);
         //开始绘制选区
         onDrawCropPoint(canvas);
     }
@@ -637,6 +670,16 @@ public class CropImageView extends CustomImageView {
         }
     }
 
+    protected void onDrawEditLines(Canvas canvas) {
+        mEditLinePath.reset();
+        mEditLinePath.moveTo(mActLeft - 5, mActTop - 5);
+        mEditLinePath.lineTo(mActLeft + mActWidth + 5, mActTop - 5);
+        mEditLinePath.lineTo(mActLeft + mActWidth + 5, mActTop + mActHeight + 5);
+        mEditLinePath.lineTo(mActLeft - 5, mActTop + mActHeight + 5);
+        mEditLinePath.close();
+        canvas.drawPath(mEditLinePath, mEditLinePaint);
+    }
+
     protected void onDrawLines(Canvas canvas) {
         Path path = resetPointPath();
         if (path != null) {
@@ -664,6 +707,10 @@ public class CropImageView extends CustomImageView {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (mCropPoints == null) {
+            // 未编辑状态
+            return super.onTouchEvent(event);
+        }
         int action = event.getAction();
         boolean handle = true;
         switch (action) {

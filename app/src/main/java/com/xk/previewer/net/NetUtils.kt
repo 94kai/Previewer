@@ -2,6 +2,7 @@ package com.xk.previewer.net
 
 import android.app.ProgressDialog
 import android.view.View
+import android.widget.Toast
 import com.xk.previewer.Application
 import com.xk.previewer.utils.SpUtils
 import okhttp3.Call
@@ -28,12 +29,12 @@ import java.io.IOException
  */
 object NetUtils {
     val interceptor = MockInterceptor(Behavior.RELAYED).apply {
-        rule(get, url eq "https://test/api?type=_3D", times = 99999, delay = 1000) {
+        rule(get, url eq "http://api.test.com/list?type=pcd", times = 99999, delay = 1000) {
             respond(
                 Mock._3D, MEDIATYPE_JSON
             )
         }
-        rule(get, url eq "https://test/api?type=IMG_GROUP", times = 99999, delay = 1000) {
+        rule(get, url eq "http://api.test.com/list?type=group_img", times = 99999, delay = 1000) {
             respond(
                 Mock.IMG, MEDIATYPE_JSON
             )
@@ -105,37 +106,49 @@ object NetUtils {
         listener: com.xk.previewer.net.Callback,
         loadingAnchor: View? = null
     ) {
-        val url = SpUtils.getInstance().get("url").ifEmpty { "https://test/api?type=" }
-        val request = Request.Builder().get().url(url + type).build()
-        if (loadingAnchor != null) {
-            showLoading(loadingAnchor)
-        }
-        okHttpClient.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                if (loadingAnchor != null) {
-                    hideLoading(loadingAnchor)
-                }
-                listener.onFailed(e.toString())
+        try {
+            var url = SpUtils.getInstance().url
+            url += "/list?type="
+            if (type == RequestType._3D) {
+                url += "pcd"
+            } else if (type == RequestType.IMG_GROUP) {
+                url += "group_img"
             }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (loadingAnchor != null) {
-                    hideLoading(loadingAnchor)
-                }
-                if (response.isSuccessful) {
-                    val body = response.body
-                    if (body != null) {
-                        listener.onSuccess(body.string())
-                    } else {
-                        listener.onFailed("无数据返回")
+            val request = Request.Builder().get().url(url).build()
+            if (loadingAnchor != null) {
+                showLoading(loadingAnchor)
+            }
+            okHttpClient.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    if (loadingAnchor != null) {
+                        hideLoading(loadingAnchor)
                     }
-
-                } else {
-                    listener.onFailed("下载失败")
+                    listener.onFailed(e.toString())
                 }
-            }
-        })
 
+                override fun onResponse(call: Call, response: Response) {
+                    if (loadingAnchor != null) {
+                        hideLoading(loadingAnchor)
+                    }
+                    if (response.isSuccessful) {
+                        val body = response.body
+                        if (body != null) {
+                            listener.onSuccess(body.string())
+                        } else {
+                            listener.onFailed("无数据返回")
+                        }
+
+                    } else {
+                        listener.onFailed("下载失败")
+                    }
+                }
+            })
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            if (loadingAnchor != null) {
+                Toast.makeText(loadingAnchor.context, t.message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     var progressDialog: ProgressDialog? = null

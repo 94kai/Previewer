@@ -20,18 +20,35 @@
 
         <EditText
             android:id="@+id/url"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
+            android:layout_weight="1"
             android:gravity="center_vertical"
             android:inputType="textUri" />
+
+        <Button
+            android:id="@+id/save"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="保存" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/version"
-        android:layout_width="match_parent"
+    <Button
+        android:id="@+id/clear_img"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="10dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginRight="10dp"
-        android:text="WebView信息获取中。。。" />
+        android:text="清除图片缓存" />
+
+    <Button
+        android:id="@+id/clear_3d"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="清除云图缓存" />
+
+    <Button
+        android:id="@+id/clear_saved_img"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="清除保存的图片缓存" />
+
 </LinearLayout>

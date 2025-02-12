@@ -1,5 +1,6 @@
 package com.xk.previewer.fragment;
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.View
@@ -22,9 +23,9 @@ import com.xk.previewer.adapter.MainImgListAdapter
 import com.xk.previewer.R
 import com.xk.previewer.R.id.group_list
 import com.xk.previewer.R.id.main_img_list
+import com.xk.previewer.activity.FullPreviewActivity
 import com.xk.previewer.activity.MainActivity
 import com.xk.previewer.net.Response
-import com.xk.previewer.net.Mock
 import com.xk.previewer.net.Callback
 import com.xk.previewer.net.NetUtils
 import com.xk.previewer.net.RequestType
@@ -155,6 +156,14 @@ class ImagePreviewFragment : Fragment(R.layout.fragment_img_preview), IRefresh {
         mainImageList?.adapter = mainImgListAdapter
 
         view?.findViewById<CropImageView>(R.id.crop_img)?.setImageUrl(data[position].images.last())
+        view?.findViewById<CropImageView>(R.id.crop_img)?.setOnClickListener{
+            val intent = Intent(
+                view?.context,
+                FullPreviewActivity::class.java
+            )
+            intent.putExtra("url", data[position].images.last())
+            view?.context?.startActivity(intent)
+        }
         setCropBtn(false)
         (activity as? MainActivity)?.setDesc(data[position].desc)
     }

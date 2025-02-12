@@ -3,6 +3,7 @@ package com.xk.previewer.utils;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.text.TextUtils;
 
 public class SpUtils {
 
@@ -38,5 +39,12 @@ public class SpUtils {
         return sp.getString(key, "");
     }
 
+    public String getUrl() {
+        String url = sp.getString("url", "");
+        if (TextUtils.isEmpty(url)) {
+            return "http://110.40.132.14:9088";
+        }
+        return url;
+    }
 
 }

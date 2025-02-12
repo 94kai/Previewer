@@ -16,7 +16,7 @@ class FullPreviewActivity : AppCompatActivity() {
         setContentView(R.layout.activity_full)
         val imgView = findViewById<CustomImageView>(id.img)
         intent.getStringExtra("url")?.let { imgView.setImageUrl(it) }
-        imgView.setOnClickListener { finish() }
+//        imgView.setOnClickListener { finish() }
     }
 
 }
