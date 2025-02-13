@@ -278,7 +278,21 @@
             if (pcdData instanceof ArrayBuffer) {
                 const pcdLoader = new THREE.PCDLoader();
                 points = pcdLoader.parse(pcdData);
-                points.material = pointCloudMaterial;
+                            // 检查是否存在颜色属性
+                const geometry = points.geometry;
+                console.log("====>geometry:",geometry)
+                if (geometry.attributes.color) {
+                    // 如果存在颜色属性，使用顶点颜色
+                    points.material = new THREE.PointsMaterial({
+                        size: 0.05,
+                        vertexColors: true,
+                        opacity: 0.7,
+                        transparent: true,
+                    });
+                } else {
+                    // 如果不存在颜色属性，使用默认白色
+                    points.material = pointCloudMaterial;
+                }
                 scene.add(points);
 
                 // 保存初始状态
@@ -472,19 +486,22 @@
 
     function logCameraInfo() {
 
-        console.log("相机位置:", {
+        let cameraInfo = { "相机位置" : {
             x: camera.position.x.toFixed(2),
             y: camera.position.y.toFixed(2),
             z: camera.position.z.toFixed(2)
-        },"相机朝向:", {
+        },"相机朝向" : {
             x: controls.target.x.toFixed(2),
             y: controls.target.y.toFixed(2),
             z: controls.target.z.toFixed(2)
-        },"相机上方向:", {
+        },"相机上方向": {
             x: camera.up.x.toFixed(2),
             y: camera.up.y.toFixed(2),
             z: camera.up.z.toFixed(2)
-        });
+        }
+        }
+
+<!--        console.log(JSON.stringify(cameraInfo));-->
 
     }
 
