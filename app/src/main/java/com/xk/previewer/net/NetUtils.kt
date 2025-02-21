@@ -10,15 +10,6 @@ import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import okhttp3.mock.AndroidResources.asset
-import okhttp3.mock.Behavior
-import okhttp3.mock.MediaTypes.MEDIATYPE_JSON
-import okhttp3.mock.MockInterceptor
-import okhttp3.mock.eq
-import okhttp3.mock.get
-import okhttp3.mock.rule
-import okhttp3.mock.startWith
-import okhttp3.mock.url
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -28,45 +19,46 @@ import java.io.IOException
  * @date 2025/01/12
  */
 object NetUtils {
-    val interceptor = MockInterceptor(Behavior.RELAYED).apply {
-        rule(get, url eq "http://api.test.com/list?type=pcd", times = 99999, delay = 1000) {
-            respond(
-                Mock._3D, MEDIATYPE_JSON
-            )
-        }
-        rule(get, url eq "http://api.test.com/list?type=group_img", times = 99999, delay = 1000) {
-            respond(
-                Mock.IMG, MEDIATYPE_JSON
-            )
-        }
-
-        rule(url startWith "https://test/file/pcd1.pcd") {
-            respond(asset(Application.app, "pcd1.pcd"))
-        }
-        rule(url startWith "https://test/file/pcd2.pcd") {
-            respond(asset(Application.app, "pcd2.pcd"))
-        }
-
-        rule(url startWith "https://test/file/pcd3.pcd") {
-            respond(asset(Application.app, "pcd3.pcd"))
-        }
-        rule(url startWith "https://test/file/pointCloud.pcd") {
-            respond(asset(Application.app, "pointCloud.pcd"))
-        }
-        rule(url startWith "https://test/file/tree.obj") {
-            respond(asset(Application.app, "tree.obj"))
-        }
-        rule(url startWith "https://test/file/off.pcd") {
-            respond(asset(Application.app, "off.pcd"))
-        }
-        rule(url startWith "https://test/file/dolphins.ply") {
-            respond(asset(Application.app, "dolphins.ply"))
-        }
-        rule(url startWith "https://test/file/dolphins_colored.ply") {
-            respond(asset(Application.app, "dolphins_colored.ply"))
-        }
-    }
-    val okHttpClient: OkHttpClient = OkHttpClient.Builder().addInterceptor(interceptor).build()
+//    val interceptor = MockInterceptor(Behavior.RELAYED).apply {
+//        rule(get, url eq "http://api.test.com/list?type=pcd", times = 99999, delay = 1000) {
+//            respond(
+//                Mock._3D, MEDIATYPE_JSON
+//            )
+//        }
+//        rule(get, url eq "http://api.test.com/list?type=group_img", times = 99999, delay = 1000) {
+//            respond(
+//                Mock.IMG, MEDIATYPE_JSON
+//            )
+//        }
+//
+//        rule(url startWith "https://test/file/pcd1.pcd") {
+//            respond(asset(Application.app, "pcd1.pcd"))
+//        }
+//        rule(url startWith "https://test/file/pcd2.pcd") {
+//            respond(asset(Application.app, "pcd2.pcd"))
+//        }
+//
+//        rule(url startWith "https://test/file/pcd3.pcd") {
+//            respond(asset(Application.app, "pcd3.pcd"))
+//        }
+//        rule(url startWith "https://test/file/pointCloud.pcd") {
+//            respond(asset(Application.app, "pointCloud.pcd"))
+//        }
+//        rule(url startWith "https://test/file/tree.obj") {
+//            respond(asset(Application.app, "tree.obj"))
+//        }
+//        rule(url startWith "https://test/file/off.pcd") {
+//            respond(asset(Application.app, "off.pcd"))
+//        }
+//        rule(url startWith "https://test/file/dolphins.ply") {
+//            respond(asset(Application.app, "dolphins.ply"))
+//        }
+//        rule(url startWith "https://test/file/dolphins_colored.ply") {
+//            respond(asset(Application.app, "dolphins_colored.ply"))
+//        }
+//    }
+    val okHttpClient: OkHttpClient = OkHttpClient.Builder().build()
+//    val okHttpClient: OkHttpClient = OkHttpClient.Builder().addInterceptor(interceptor).build()
 
 
     fun downloadFile(url: String, path: String, callback: com.xk.previewer.net.Callback) {

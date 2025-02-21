@@ -1,6 +1,5 @@
 package com.xk.previewer;
 
-import com.facebook.drawee.backends.pipeline.Fresco;
 import com.xk.previewer.utils.SpUtils;
 
 /**
@@ -12,8 +11,5 @@ public class Application extends android.app.Application {
     public void onCreate() {
         super.onCreate();
         SpUtils.init(this);
-        Fresco.initialize(this);
-        app = this;
     }
-    public static Application app;
 }

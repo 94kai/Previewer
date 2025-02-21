@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Preview"
 include(":app")
- 
+include(":realapp")

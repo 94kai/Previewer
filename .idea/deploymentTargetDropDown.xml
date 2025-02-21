@@ -10,12 +10,28 @@
               <deviceKey>
                 <Key>
                   <type value="VIRTUAL_DEVICE_PATH" />
-                  <value value="$USER_HOME$/.android/avd/Medium_Tablet_API_29.avd" />
+                  <value value="$USER_HOME$/.android/avd/Pixel_2_API_28.avd" />
                 </Key>
               </deviceKey>
             </Target>
           </targetSelectedWithDropDown>
-          <timeTargetWasSelectedWithDropDown value="2025-02-12T14:14:12.902285Z" />
+          <timeTargetWasSelectedWithDropDown value="2025-02-13T14:33:06.755649Z" />
+        </State>
+      </entry>
+      <entry key="realapp">
+        <State>
+          <targetSelectedWithDropDown>
+            <Target>
+              <type value="QUICK_BOOT_TARGET" />
+              <deviceKey>
+                <Key>
+                  <type value="VIRTUAL_DEVICE_PATH" />
+                  <value value="$USER_HOME$/.android/avd/Pixel_2_API_28.avd" />
+                </Key>
+              </deviceKey>
+            </Target>
+          </targetSelectedWithDropDown>
+          <timeTargetWasSelectedWithDropDown value="2025-02-17T14:43:45.531088Z" />
         </State>
       </entry>
     </value>
