@@ -24,7 +24,7 @@
 
 <body>
 <div id="upload-container" style="display: none;">
-    <input type="file" id="pcd-upload" accept=".pcd"/>
+    <input type="file" id="pcd-upload" accept=".pcd,.obj,.ply"/>
     <button id="clear-scene">清除场景</button>
     <button id="load-default">加载pcd</button>
     <button id="load-obj">加载obj</button>
@@ -50,7 +50,7 @@
 <script src="./OrbitControls.js"></script>
 <script>
 
-<!--    showUploadContainer()-->
+    //showUploadContainer()
     // hideUploadContainer()
     // 获取上传按钮和画布元素
     const pcdUpload = document.getElementById('pcd-upload');
@@ -93,14 +93,15 @@
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(new THREE.Color(5 / 255, 20 / 255, 39 / 255));
+    // renderer.setClearColor(0xffffff); // 使用十六进制的白色
     document.body.appendChild(renderer.domElement);
 
     // 设置控制器
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.addEventListener('change', () => renderer.render(scene, camera));
 
-<!--    const axesHelper = new THREE.AxesHelper(100)-->
-<!--    scene.add(axesHelper)-->
+    // const axesHelper = new THREE.AxesHelper(100)
+    // scene.add(axesHelper)
 
     // 设置光源
     const light = new THREE.AmbientLight(0xffffff);
@@ -132,8 +133,8 @@
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.addEventListener('change', () => renderer.render(scene, camera));
 
-<!--        const axesHelper = new THREE.AxesHelper(100)-->
-<!--        scene.add(axesHelper)-->
+        const axesHelper = new THREE.AxesHelper(100)
+        scene.add(axesHelper)
 
         // 设置光源
         const light = new THREE.AmbientLight(0xffffff);
@@ -142,7 +143,17 @@
 
     // 处理上传的PCD文件
     pcdUpload.addEventListener('change', (event) => {
-        loadPcdByFile(event.target.files[0])
+        const file = event.target.files[0];
+        const fileName = file.name;
+        const fileType = fileName.split('.').pop();
+        if(fileType == 'pcd'){
+            loadPcdByFile(file)
+        }else if(fileType == 'obj'){
+            loadObjByFile(file)
+        }else if(fileType == 'ply'){
+            console.log("====>ply file:",fileName)
+            loadPlyByFile(file)
+        }
     });
 
     // 为加载默认点云按钮添加点击事件监听器
@@ -197,11 +208,102 @@
 
     function loadPlyByFile(file){
         const reader = new FileReader();
-        reader.readAsText(file);
+        reader.readAsArrayBuffer(file);
         reader.onload = function(e) {
             loadPlyData(e.target.result)
         };
         
+    }
+
+
+    function fitCameraToObject(camera, object, percentage = 0.8) {
+        const box = new THREE.Box3().setFromObject(object);
+        const size = box.getSize(new THREE.Vector3());
+        const height = size.y;
+
+        const fov = camera.fov * (Math.PI / 180); // 转换为弧度
+        const distance = height / (percentage * Math.tan(fov / 2));
+
+        const center = box.getCenter(new THREE.Vector3());
+        camera.position.set(center.x, center.y, center.z + distance);
+        camera.lookAt(center);
+
+        // 更新控制器的目标点为模型中心
+        camera.updateProjectionMatrix();
+        controls.target.copy(center);
+        controls.update();
+        
+        renderer.render(scene, camera);
+    }
+
+    function adjustModelToScreen() {
+    if (!points) return;
+
+        // 计算模型的包围盒
+        if (points instanceof THREE.Group) {
+            // 如果是组对象，需要遍历所有子对象计算总的包围盒
+            const box = new THREE.Box3();
+            points.traverse(function(child) {
+                if (child.geometry) {
+                    child.geometry.computeBoundingBox();
+                    box.expandByObject(child);
+                }
+            });
+            points.boundingBox = box;
+        } else if (points.geometry) {
+            // 单个对象直接计算包围盒
+            points.geometry.computeBoundingBox();
+            points.boundingBox = points.geometry.boundingBox;
+        }
+
+        // 获取包围盒的尺寸
+        const size = new THREE.Vector3();
+        points.boundingBox.getSize(size);
+
+        // // 计算模型的最大尺寸
+        // const maxDimension = Math.max(size.x, size.y, size.z);
+        console.log("====>size:",size)
+
+        // // 计算合适的相机距离
+        // const fov = camera.fov * (Math.PI / 180); // 转换为弧度
+        // const cameraDistance = (maxDimension / 2) / Math.tan(fov / 2);
+
+
+// 计算屏幕宽高比
+const aspectRatio = window.innerWidth / window.innerHeight;
+
+// 计算视场角（FOV）的一半，转换为弧度
+const halfFov = (camera.fov / 2) * (Math.PI / 180);
+
+// 计算水平和垂直方向所需的距离
+const distanceForHeight = size.y / (2 * Math.tan(halfFov));
+const distanceForWidth = size.x / (2 * Math.tan(halfFov * aspectRatio));
+
+// 使用较大的距离确保模型完全可见
+const cameraDistance = Math.max(distanceForWidth, distanceForHeight);
+
+
+
+        console.log("====>cameraDistance:",cameraDistance)
+
+
+         //       获取相机的方向向量
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+
+        // 重置相机位置到原点
+        camera.position.set(0, 0, 0);
+        
+        // 沿相机方向设置距离
+        camera.position.addScaledVector(direction, 1.8);
+
+        // 更新相机和控制器
+        camera.updateProjectionMatrix();
+        controls.update();
+
+        // 渲染场景
+        renderer.render(scene, camera);
+
     }
 
     
@@ -215,7 +317,10 @@
                 points = objLoader.parse(ObjData);
                 // points.material = pointCloudMaterial;
                 scene.add(points);
-                zoomControl('zoomUp',47);
+                // zoomControl('zoomUp',47);
+
+                // adjustModelToScreen();
+                fitCameraToObject(camera, points,0.8);
                 saveOriginalState();
                 renderer.render(scene, camera);
             }else{
@@ -232,8 +337,106 @@
         }
 
     }
+    function loadPlyData(PlyData) {
+        clearPointClouds();
+        try {
+            if (PlyData instanceof ArrayBuffer) {
+                const plyLoader = new THREE.PLYLoader();
+                const geometry = plyLoader.parse(PlyData);
+                
+                // 创建点云材质
+                const material = new THREE.PointsMaterial({
+                    size: 0.01,              // 点的大小
+                    vertexColors: true,      // 启用顶点颜色
+                    opacity: 0.7,            // 透明度
+                    transparent: true,        // 启用透明
+                    // sizeAttenuation: true    // 启用距离衰减
+                });
 
-    function loadPlyData(PlyData){
+                // 创建点云
+                const pointCloud = new THREE.Points(geometry, material);
+
+                // 根据模型大小调整缩放
+                const box = new THREE.Box3().setFromObject(pointCloud);
+                const size = box.getSize(new THREE.Vector3());
+                const maxSize = Math.max(size.x, size.y, size.z);
+                const scale = 1 / maxSize;
+                pointCloud.scale.multiplyScalar(scale);
+
+                scene.add(pointCloud);
+                points = pointCloud;
+
+                // 调整相机视角
+                fitCameraToObject(camera, points, 0.8);
+                saveOriginalState();
+                renderer.render(scene, camera);
+            } else {
+                console.error('plydata error');
+                alert('加载ply失败，请检查文件格式是否正确');
+                throw error;
+            }
+        } catch (error) {
+            let msg = {"msg": '加载ply失败,' + error};
+            console.error(msg);
+            alert(JSON.stringify(msg));
+            throw error;
+        }
+    }
+
+    function loadPlyData3(PlyData) {
+        clearPointClouds();
+        try {
+            if (PlyData instanceof ArrayBuffer) {
+                const plyLoader = new THREE.PLYLoader();
+                const geometry = plyLoader.parse(PlyData);
+                
+                // 计算顶点法线
+                // geometry.computeVertexNormals();
+
+                // 创建材质
+                const material = new THREE.MeshStandardMaterial({
+                    // vertexColors: true,      // 启用顶点颜色
+                    // side: THREE.DoubleSide,  // 双面显示
+                    flatShading: true,       // 平面着色
+                    // metalness: 0.0,          // 金属度
+                    // roughness: 0.5           // 粗糙度
+                });
+
+                // 创建网格
+                const mesh = new THREE.Mesh(geometry, material);
+
+                // 根据模型大小调整缩放
+                const box = new THREE.Box3().setFromObject(mesh);
+                const size = box.getSize(new THREE.Vector3());
+                const maxSize = Math.max(size.x, size.y, size.z);
+                const scale = 1 / maxSize;
+                mesh.scale.multiplyScalar(scale);
+
+                // 启用阴影
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                scene.add(mesh);
+                points = mesh;
+
+                // 调整相机视角
+                fitCameraToObject(camera, points, 0.8);
+                saveOriginalState();
+                renderer.render(scene, camera);
+            } else {
+                console.error('plydata error');
+                alert('加载ply失败，请检查文件格式是否正确');
+                throw error;
+            }
+        } catch (error) {
+            let msg = {"msg": '加载ply失败,' + error};
+            console.error(msg);
+            alert(JSON.stringify(msg));
+            throw error;
+        }
+    }
+
+    function loadPlyData2(PlyData){
         clearPointClouds()
         try {
             if (PlyData instanceof ArrayBuffer) {
@@ -252,17 +455,19 @@
                 mesh.receiveShadow = true;
                 scene.add(mesh);
                 points = mesh;
-                zoomControl('zoomUp',47);
+                // zoomControl('zoomUp',47);
+                // adjustModelToScreen();
+                fitCameraToObject(camera, points,0.8);
                 saveOriginalState();
                 renderer.render(scene, camera);
             }else{
-                console.error('objdata is not String');
-                alert('加载obj失败，请检查文件格式是否正确');
+                console.error('plydata error');
+                alert('加载ply失败，请检查文件格式是否正确');
                 throw error;
             }
             
         } catch (error) {
-            let msg = {"msg":'加载obj失败,'+ error}
+            let msg = {"msg":'加载ply失败,'+ error}
             console.error(msg);
             alert(JSON.stringify(msg));
             throw error;
@@ -501,7 +706,7 @@
         }
         }
 
-<!--        console.log(JSON.stringify(cameraInfo));-->
+        console.log(JSON.stringify(cameraInfo));
 
     }
 

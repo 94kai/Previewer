@@ -5,11 +5,11 @@ plugins {
 
 android {
     namespace = "com.xk.realapp"
-    compileSdk = 34
+    compileSdk = 32
 
     defaultConfig {
         applicationId = "com.xk.previewer"
-        minSdk = 24
+        minSdk = 21
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -51,11 +51,11 @@ dependencies {
 //    implementation(files("../app-debug.aar"))
     implementation(project(":app"))
 
-    implementation("androidx.webkit:webkit:1.12.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.webkit:webkit:1.5.0")
+    implementation("androidx.appcompat:appcompat:1.5.1")
+    implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation("com.google.code.gson:gson:2.11.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
 
 
 //    implementation(libs.androidx.lifecycle.runtime.ktx)

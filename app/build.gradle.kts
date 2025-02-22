@@ -5,10 +5,10 @@ plugins {
 
 android {
     namespace = "com.xk.previewer"
-    compileSdk = 34
+    compileSdk = 32
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 21
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -27,17 +27,17 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
+//    kotlinOptions {
+//        jvmTarget = "1.8"
+//    }
 }
 
 dependencies {
-    implementation("androidx.webkit:webkit:1.12.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.webkit:webkit:1.5.0")
+    implementation("androidx.appcompat:appcompat:1.5.1")
+    implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation("com.google.code.gson:gson:2.11.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
 
 }
 
