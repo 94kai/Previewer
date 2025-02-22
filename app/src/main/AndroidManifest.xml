@@ -33,6 +33,7 @@
             android:theme="@style/Theme.MyApplication">
         </activity>
         <activity
+            android:theme="@style/Theme.MyApplication"
             android:name=".activity.FullPreviewActivity"
             android:screenOrientation="landscape" />
     </application>
