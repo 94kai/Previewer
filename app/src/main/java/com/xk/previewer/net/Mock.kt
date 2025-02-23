@@ -11,35 +11,35 @@ object Mock {
             msg:"success",
             data:[
                 {
-                    title:"pcd1.pcd",
+                    title:"previewer/pcd1.pcd",
                     desc:"中科院的房子111",
                     images:[
                         "https://test/file/pcd1.pcd"
                     ]
                 },
                 {
-                    title:"off.pcd",
+                    title:"previewer/off.pcd",
                     desc:"中科院的房子113",
                     images:[
                         "https://test/file/off.pcd"
                     ]
                 },
                 {
-                    title:"dolphins.ply",
+                    title:"previewer/dolphins.ply",
                     desc:"中科院的房子113",
                     images:[
                         "https://test/file/dolphins.ply"
                     ]
                 },
                 {
-                    title:"tree.obj",
+                    title:"previewer/tree.obj",
                     desc:"中科院的房子113",
                     images:[
                         "https://test/file/tree.obj"
                     ]
                 },
                 {
-                    title:"dolphins_colored.ply",
+                    title:"previewer/dolphins_colored.ply",
                     desc:"",
                     images:[
                         "https://test/file/dolphins_colored.ply"

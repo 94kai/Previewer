@@ -33,7 +33,7 @@ class CustomWebView(context: Context, attrs: AttributeSet?) : WebView(context, a
 
         }
         webViewClient = WebViewClientCompat()
-        loadUrl("file:///android_asset/index.html");
+        loadUrl("file:///android_asset/previewer/index.html");
     }
 
     lateinit var _3DPath: String
