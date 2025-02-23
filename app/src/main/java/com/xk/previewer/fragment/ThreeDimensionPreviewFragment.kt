@@ -1,5 +1,6 @@
 package com.xk.previewer.fragment;
 
+import android.content.Context
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.View
@@ -32,9 +33,12 @@ class ThreeDimensionPreviewFragment : Fragment(R.layout.fragment_3d_preview), IR
     private val CACHE_DATA: String = "CACHE_3D"
     val gson = Gson()
 
+    // 接入方中使用AgentWeb对webview进行了pause，所以我们这里需要resume一下
+    var webView: WebView? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         // 清空描述
         (activity as? MainActivity)?.setDesc("")
         view.findViewById<WebView>(R.id.webview).webViewClient = object : WebViewClient() {
@@ -48,6 +52,23 @@ class ThreeDimensionPreviewFragment : Fragment(R.layout.fragment_3d_preview), IR
                 }
             }
         }
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        webView = WebView(context)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        webView?.onPause()
+        webView?.pauseTimers()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        webView?.onResume()
+        webView?.resumeTimers()
     }
 
     private fun refreshFromNet() {
